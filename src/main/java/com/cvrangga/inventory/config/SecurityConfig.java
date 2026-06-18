@@ -1,9 +1,12 @@
 package com.cvrangga.inventory.config;
 
+import com.cvrangga.inventory.security.CustomUserDetailsService; // 1. Pastikan import ini ada
 import com.cvrangga.inventory.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider; // 2. Tambahkan import ini
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider; // 3. Tambahkan import ini
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -23,14 +26,27 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomUserDetailsService customUserDetailsService; // 4. Tambahkan service pencari user
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    // 5. Inject kedua kelas ke dalam Constructor
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, 
+                          CustomUserDetailsService customUserDetailsService) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.customUserDetailsService = customUserDetailsService;
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
+    }
+
+    // 6. TAMBAHKAN BEAN INI (Jembatan validasi BCrypt(12) ke database)
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(customUserDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder()); 
+        return authProvider;
     }
 
     @Bean
@@ -44,6 +60,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authenticationProvider(authenticationProvider()) // 7. Daftarkan provider-nya di sini
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
