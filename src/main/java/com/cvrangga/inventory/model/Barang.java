@@ -1,5 +1,6 @@
 package com.cvrangga.inventory.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -7,6 +8,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "barang")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Barang {
 
     @Id
